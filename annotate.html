@@ -3,7 +3,11 @@
 <head>
     <link rel="stylesheet" href="http://annotorious.github.com/latest/annotorious.css" />
     <script src=" http://annotorious.github.com/latest/annotorious.min.js"></script>
+    <script src="FileSaver.js/FileSaver.js"></script>
     <script>
+
+    var imageFile = "";    
+
     var openFile = function(event) {
         var input = event.target;
         var reader = new FileReader();
@@ -15,16 +19,11 @@
                 anno.reset();
             }, 100);
         };
+        imageFile = input.files[0];
         reader.readAsDataURL(input.files[0]);
     };
 
-    // prints 
-    function showBoxes(){
-        var myNode = document.getElementById("myList");
-        while (myNode.firstChild) {
-            myNode.removeChild(myNode.firstChild);
-        }
-            
+    var generateAnnotatedImage = function() {
         var annoList = anno.getAnnotations();
         //if (annoList.length == 0) return;
         // copy object (for safety)
@@ -35,7 +34,7 @@
         var image = {};
         image.width = width;
         image.height = height;
-        image.faces = [];
+        image.annotations = [];
 
         for (var ind = 0; ind < annoList.length; ind++){
             var curAnno = annoList[ind];
@@ -48,8 +47,26 @@
                 curGeom.y = Math.round(curGeom.y * height);
             }
 
-            image.faces.push(curGeom);
+            image.annotations.push(curGeom);
         }
+        return image;
+    }
+
+    var save = function(event) {
+        var image = generateAnnotatedImage();
+        var blob = new Blob([JSON.stringify(image, null, '  ')], {type: "text/plain;charset=utf-8"});
+        var imageFilename = imageFile.name;
+        var jsonFilename = imageFilename.slice(0, -4) + '.json'        
+        saveAs(blob, jsonFilename);
+    }
+
+    // prints 
+    function showBoxes(){
+        var myNode = document.getElementById("myList");
+        while (myNode.firstChild) {
+            myNode.removeChild(myNode.firstChild);
+        }
+        var image = generateAnnotatedImage();            
         var node = document.createElement("PRE");
         var textNode = document.createTextNode(JSON.stringify(image, null, '  '));
         node.appendChild(textNode);
@@ -70,11 +87,13 @@
 <br>
     <input type='file' accept='image/*' onchange='openFile(event)' />
     <div>
-        <button type="button" onclick="showBoxes()">Show boxes</button>
+        <button type="button" onclick="showBoxes()">Show</button>
+        <button type="button" onclick="save()">Save</button>
     </div>
     <br>
         
-        <div>Select image, click and drag to select boxes, then click on 'Show Boxes' button.  The coordinates and the labels of the selected boxes will be shown. Format: (name, xmin, ymin, xmax, ymax)</div>
+        <div>Select image, click and drag to select boxes, then click on 'Show Boxes' button. JSON representing this image and
+        its annotations will be produced when you press Show.</div>
         <ul id="myList">
         </ul>
     </br>
